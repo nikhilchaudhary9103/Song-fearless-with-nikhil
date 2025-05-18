@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cool Music Player</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to right, #1d2b64, #f8cdda);
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .player {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      text-align: center;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .player h2 {
+      color: white;
+      margin-bottom: 20px;
+      animation: pop 0.8s ease-in-out;
+    }
+
+    audio {
+      width: 300px;
+      outline: none;
+    }
+
+    @keyframes fadeIn {
+      from {
+        transform: translateY(50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes pop {
+      0% {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .pulse {
+      width: 100px;
+      height: 100px;
+      background: #fff;
+      margin: 20px auto;
+      border-radius: 50%;
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.7;
+      }
+      50% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 0.7;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <h2>Now Playing: Song 1</h2>
+    <div class="pulse"></div>
+    <audio controls autoplay>
+      <source src="song1.mp3" type="audio/mp3" />
+      Your browser does not support the audio tag.
+    </audio>
+  </div>
+</body>
+  </html>

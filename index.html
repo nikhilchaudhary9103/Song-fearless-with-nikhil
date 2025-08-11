@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nikhil's Music Player</title>
+  <style>
+    :root {
+      --primary: #00e5a8;
+      --dark: #0f172a;
+      --light: #e6f7ff;
+      --glass: rgba(255, 255, 255, 0.08);
+      --shadow: 0 8px 32px rgba(2, 6, 23, 0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #071029 0%, #0b1220 100%);
+      color: var(--light);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .player {
+      width: 100%;
+      max-width: 800px;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 30px;
+    }
+
+    .artwork-container {
+      width: 250px;
+      height: 250px;
+      margin: 0 auto;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid var(--primary);
+      box-shadow: 0 10px 30px rgba(0, 229, 168, 0.3);
+      transition: transform 0.5s ease;
+    }
+
+    .artwork-container:hover {
+      transform: rotate(360deg);
+    }
+
+    .artwork {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .song-info {
+      text-align: center;
+    }
+
+    .song-info h1 {
+      font-size: 24px;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .song-info p {
+      opacity: 0.7;
+      font-size: 14px;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      cursor: pointer;
+      margin: 15px 0;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 10px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      background: var(--primary);
+      color: var(--dark);
+    }
+
+    .btn-main {
+      background: var(--primary);
+      color: var(--dark);
+      padding: 12px 25px;
+    }
+
+    .upload-section {
+      margin-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 20px;
+    }
+
+    .upload-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin-top: 10px;
+      position: relative;
+    }
+
+    .upload-btn input {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
+      color: var(--primary);
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <div class="artwork-container">
+      <img id="artwork" class="artwork" src="image.jpg" alt="Nikhil's Profile">
+    </div>
+
+    <div class="song-info">
+      <h1 id="song-title">Music by Nikhil</h1>
+      <p id="song-artist">Enjoy your favorite tracks</p>
+    </div>
+
+    <div class="progress-container" id="progress-container">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <div class="time-display">
+      <span id="current-time">00:00</span>
+      <span id="duration">00:00</span>
+    </div>
+
+    <div class="controls">
+      <button id="prev-btn" class="btn">⏮</button>
+      <button id="play-btn" class="btn btn-main">▶ Play</button>
+      <button id="next-btn" class="btn">⏭</button>
+      <button id="mute-btn" class="btn">🔊</button>
+    </div>
+
+    <div class="upload-section">
+      <button class="btn upload-btn">
+        Upload New Song
+        <input type="file" id="song-upload" accept="audio/*">
+      </button>
+      <button class="btn upload-btn">
+        Upload New Image
+        <input type="file" id="image-upload" accept="image/*">
+      </button>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <audio id="audio" src="song1.mp3"></audio>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+
+  <script>
+    // Firebase Configuration (Fixed)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgD17HehIZ3RXWy9B6RbYT2Bl4HTZZzfI",
+      authDomain: "cloudstorage-bf72f.firebaseapp.com",
+      projectId: "cloudstorage-bf72f",
+      storageBucket: "cloudstorage-bf72f.appspot.com",
+      messagingSenderId: "240415341844",
+      appId: "1:240415341844:web:e508a987cbbea4dcf01601",
+      measurementId: "G-E49R91SPL9"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+
+    // DOM Elements
+    const audio = document.getElementById('audio');
+    const artwork = document.getElementById('artwork');
+    const songTitle = document.getElementById('song-title');
+    const progressBar = document.getElementById('progress-bar');
+    const progressContainer = document.getElementById('progress-container');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationEl = document.getElementById('duration');
+    const playBtn = document.getElementById('play-btn');
+    const muteBtn = document.getElementById('mute-btn');
+    const songUpload = document.getElementById('song-upload');
+    const imageUpload = document.getElementById('image-upload');
+    const statusEl = document.getElementById('status');
+
+    // State
+    let isPlaying = false;
+
+    // Format time (mm:ss)
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Update progress bar
+    function updateProgress() {
+      const { currentTime, duration } = audio;
+      const progressPercent = (currentTime / duration) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+      currentTimeEl.textContent = formatTime(currentTime);
+      durationEl.textContent = formatTime(duration);
+    }
+
+    // Set progress when clicked
+    function setProgress(e) {
+      const width = this.clientWidth;
+      const clickX = e.offsetX;
+      const duration = audio.duration;
+      audio.currentTime = (clickX / width) * duration;
+    }
+
+    // Play/pause toggle
+    function togglePlay() {
+      if (isPlaying) {
+        audio.pause();
+        playBtn.textContent = "▶ Play";
+      } else {
+        audio.play()
+          .then(() => {
+            playBtn.textContent = "⏸ Pause";
+          })
+          .catch(err => {
+            statusEl.textContent = "Error: " + err.message;
+          });
+      }
+      isPlaying = !isPlaying;
+    }
+
+    // Toggle mute
+    function toggleMute() {
+      audio.muted = !audio.muted;
+      muteBtn.textContent = audio.muted ? "🔇" : "🔊";
+    }
+
+    // Upload file to Firebase
+    function uploadFile(file, type) {
+      if (!file) return;
+
+      statusEl.textContent = "Uploading...";
+      
+      const storageRef = storage.ref(`${type}s/${file.name}`);
+      const uploadTask = storageRef.put(file);
+
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          // Progress tracking can be added here
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          statusEl.textContent = `Uploading: ${Math.round(progress)}%`;
+        },
+        (error) => {
+          statusEl.textContent = "Upload failed: " + error.message;
+        },
+        () => {
+          uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+            if (type === 'audio') {
+              audio.src = downloadURL;
+              localStorage.setItem('currentSong', downloadURL);
+              statusEl.textContent = "Song uploaded successfully!";
+              if (isPlaying) audio.play();
+            } else {
+              artwork.src = downloadURL;
+              localStorage.setItem('currentImage', downloadURL);
+              statusEl.textContent = "Image uploaded successfully!";
+            }
+          });
+        }
+      );
+    }
+
+    // Check local storage for saved files
+    function checkLocalStorage() {
+      const savedSong = localStorage.getItem('currentSong');
+      const savedImage = localStorage.getItem('currentImage');
+
+      if (savedSong) {
+        audio.src = savedSong;
+      }
+
+      if (savedImage) {
+        artwork.src = savedImage;
+      }
+    }
+
+    // Event Listeners
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('loadedmetadata', () => {
+      durationEl.textContent = formatTime(audio.duration);
+    });
+    audio.addEventListener('ended', () => {
+      isPlaying = false;
+      playBtn.textContent = "▶ Play";
+    });
+
+    progressContainer.addEventListener('click', setProgress);
+
+    playBtn.addEventListener('click', togglePlay);
+    muteBtn.addEventListener('click', toggleMute);
+
+    songUpload.addEventListener('change', (e) => {
+      uploadFile(e.target.files[0], 'audio');
+    });
+
+    imageUpload.addEventListener('change', (e) => {
+      uploadFile(e.target.files[0], 'image');
+    });
+
+    // Initialize
+    checkLocalStorage();
+    updateProgress();
+  </script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nikhil's Music Lab</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+  <style>
+    :root {
+      --primary: #00e5a8;
+      --dark: #0f172a;
+      --light: #e6f7ff;
+      --glass: rgba(255, 255, 255, 0.08);
+      --shadow: 0 8px 32px rgba(2, 6, 23, 0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #071029 0%, #0b1220 100%);
+      color: var(--light);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .player {
+      width: 100%;
+      max-width: 800px;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 30px;
+      padding: 30px;
+      position: relative;
+    }
+
+    .artwork-container {
+      position: relative;
+      perspective: 1000px;
+    }
+
+    .artwork {
+      width: 100%;
+      aspect-ratio: 1/1;
+      border-radius: 15px;
+      object-fit: cover;
+      border: 3px solid var(--primary);
+      box-shadow: 0 10px 30px rgba(0, 229, 168, 0.3);
+      transition: transform 0.5s ease;
+      transform-style: preserve-3d;
+    }
+
+    .artwork:hover {
+      transform: rotateY(10deg) rotateX(5deg) scale(1.03);
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    .song-info h1 {
+      font-size: 28px;
+      margin-bottom: 5px;
+      color: var(--primary);
+      letter-spacing: 1px;
+    }
+
+    .song-info p {
+      opacity: 0.7;
+      font-size: 14px;
+    }
+
+    .waveform {
+      height: 100px;
+      width: 100%;
+      background: rgba(0, 229, 168, 0.1);
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .wave {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+      opacity: 0.6;
+      animation: wave 2s linear infinite;
+    }
+
+    @keyframes wave {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      border-radius: 3px;
+      transition: width 0.1s linear;
+      position: relative;
+    }
+
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      right: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .progress-container:hover .progress-bar::after {
+      opacity: 1;
+    }
+
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: -15px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .btn {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 10px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      background: var(--primary);
+      color: var(--dark);
+    }
+
+    .btn-main {
+      background: var(--primary);
+      color: var(--dark);
+      padding: 12px 25px;
+    }
+
+    .btn-main:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px var(--primary);
+    }
+
+    .upload-area {
+      border: 2px dashed var(--primary);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 20px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-area:hover {
+      background: rgba(0, 229, 168, 0.05);
+    }
+
+    .upload-area.active {
+      background: rgba(0, 229, 168, 0.1);
+    }
+
+    .upload-area input {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+
+    .upload-text {
+      margin-bottom: 10px;
+    }
+
+    .upload-btn {
+      background: var(--primary);
+      color: var(--dark);
+      border: none;
+      padding: 8px 15px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .status {
+      margin-top: 20px;
+      font-size: 14px;
+      opacity: 0.7;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .player {
+        grid-template-columns: 1fr;
+        padding: 20px;
+      }
+      
+      .artwork-container {
+        max-width: 250px;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <div class="artwork-container">
+      <img id="artwork" class="artwork" src="https://via.placeholder.com/500" alt="Album Art">
+    </div>
+
+    <div class="controls">
+      <div class="song-info">
+        <h1 id="song-title">Music by Nikhil</h1>
+        <p id="song-artist">Upload your music to begin</p>
+      </div>
+
+      <div class="waveform">
+        <div class="wave"></div>
+      </div>
+
+      <div class="progress-container" id="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div class="time-display">
+        <span id="current-time">00:00</span>
+        <span id="duration">00:00</span>
+      </div>
+
+      <div class="buttons">
+        <button id="prev-btn" class="btn">⏮</button>
+        <button id="play-btn" class="btn btn-main">▶ Play</button>
+        <button id="next-btn" class="btn">⏭</button>
+        <button id="mute-btn" class="btn">🔊</button>
+      </div>
+
+      <div class="upload-area" id="upload-area">
+        <div class="upload-icon">☁️</div>
+        <div class="upload-text">Drag & drop your music or click to browse</div>
+        <button class="upload-btn">Select File</button>
+        <input type="file" id="file-input" accept="audio/*,image/*">
+      </div>
+
+      <div class="status" id="status">Ready to upload</div>
+    </div>
+  </div>
+
+  <audio id="audio"></audio>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgD17HehIZ3RXWy9B6RbYT2Bl4HTZZzfI",
+      authDomain: "cloudstorage-bf72f.firebaseapp.com",
+      projectId: "cloudstorage-bf72f",
+      storageBucket: "cloudstorage-bf72f.appspot.com",
+      messagingSenderId: "240415341844",
+      appId: "1:240415341844:web:e508a987cbbea4dcf01601",
+      measurementId: "G-E49R91SPL9"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+
+    // DOM Elements
+    const audio = document.getElementById('audio');
+    const artwork = document.getElementById('artwork');
+    const songTitle = document.getElementById('song-title');
+    const songArtist = document.getElementById('song-artist');
+    const progressBar = document.getElementById('progress-bar');
+    const progressContainer = document.getElementById('progress-container');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationEl = document.getElementById('duration');
+    const playBtn = document.getElementById('play-btn');
+    const muteBtn = document.getElementById('mute-btn');
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+    const statusEl = document.getElementById('status');
+
+    // State
+    let currentSong = null;
+    let isPlaying = false;
+    let isDragging = false;
+
+    // Check local storage for saved data
+    function loadFromLocalStorage() {
+      const savedSong = localStorage.getItem('currentSong');
+      const savedArtwork = localStorage.getItem('currentArtwork');
+      const savedTitle = localStorage.getItem('currentTitle');
+
+      if (savedSong) {
+        audio.src = savedSong;
+        currentSong = savedSong;
+      }
+
+      if (savedArtwork) {
+        artwork.src = savedArtwork;
+      }
+
+      if (savedTitle) {
+        songTitle.textContent = savedTitle;
+      }
+    }
+
+    // Format time (mm:ss)
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Update progress bar
+    function updateProgress() {
+      if (isDragging) return;
+      
+      const { currentTime, duration } = audio;
+      const progressPercent = (currentTime / duration) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+      currentTimeEl.textContent = formatTime(currentTime);
+      durationEl.textContent = formatTime(duration);
+    }
+
+    // Set progress when clicked
+    function setProgress(e) {
+      const width = this.clientWidth;
+      const clickX = e.offsetX;
+      const duration = audio.duration;
+      audio.currentTime = (clickX / width) * duration;
+    }
+
+    // Play/pause toggle
+    function togglePlay() {
+      if (!currentSong) {
+        statusEl.textContent = "No song loaded";
+        return;
+      }
+
+      if (isPlaying) {
+        audio.pause();
+        playBtn.textContent = "▶ Play";
+      } else {
+        audio.play()
+          .then(() => {
+            playBtn.textContent = "⏸ Pause";
+          })
+          .catch(err => {
+            statusEl.textContent = "Playback error: " + err.message;
+          });
+      }
+      isPlaying = !isPlaying;
+    }
+
+    // Toggle mute
+    function toggleMute() {
+      audio.muted = !audio.muted;
+      muteBtn.textContent = audio.muted ? "🔇" : "🔊";
+    }
+
+    // Handle file upload
+    async function handleFileUpload(file) {
+      if (!file) return;
+
+      statusEl.textContent = "Uploading...";
+      
+      try {
+        // Determine file type
+        const isAudio = file.type.startsWith('audio/');
+        const isImage = file.type.startsWith('image/');
+        
+        if (!isAudio && !isImage) {
+          throw new Error("Please upload an audio or image file");
+        }
+
+        // Create storage reference
+        const fileRef = storage.ref(`${isAudio ? 'songs' : 'images'}/${file.name}`);
+        
+        // Upload file
+        const snapshot = await fileRef.put(file);
+        const downloadURL = await snapshot.ref.getDownloadURL();
+
+        // Update UI based on file type
+        if (isAudio) {
+          audio.src = downloadURL;
+          currentSong = downloadURL;
+          songTitle.textContent = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+          localStorage.setItem('currentSong', downloadURL);
+          localStorage.setItem('currentTitle', songTitle.textContent);
+          statusEl.textContent = "Song uploaded successfully!";
+          
+          // Auto-play if user was already playing
+          if (isPlaying) {
+            audio.play();
+          }
+        } else {
+          artwork.src = downloadURL;
+          localStorage.setItem('currentArtwork', downloadURL);
+          statusEl.textContent = "Image uploaded successfully!";
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        statusEl.textContent = `Error: ${error.message}`;
+      }
+    }
+
+    // Drag and drop handlers
+    function handleDragOver(e) {
+      e.preventDefault();
+      uploadArea.classList.add('active');
+    }
+
+    function handleDragLeave() {
+      uploadArea.classList.remove('active');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      uploadArea.classList.remove('active');
+      
+      if (e.dataTransfer.files.length) {
+        handleFileUpload(e.dataTransfer.files[0]);
+      }
+    }
+
+    // Event Listeners
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('ended', () => {
+      isPlaying = false;
+      playBtn.textContent = "▶ Play";
+    });
+    audio.addEventListener('loadedmetadata', () => {
+      durationEl.textContent = formatTime(audio.duration);
+    });
+
+    progressContainer.addEventListener('click', setProgress);
+    progressContainer.addEventListener('mousedown', () => isDragging = true);
+    progressContainer.addEventListener('mouseup', () => isDragging = false);
+
+    playBtn.addEventListener('click', togglePlay);
+    muteBtn.addEventListener('click', toggleMute);
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) {
+        handleFileUpload(e.target.files[0]);
+      }
+    });
+
+    uploadArea.addEventListener('dragover', handleDragOver);
+    uploadArea.addEventListener('dragleave', handleDragLeave);
+    uploadArea.addEventListener('drop', handleDrop);
+
+    // Initialize
+    loadFromLocalStorage();
+  </script>
+</body>
+</html>

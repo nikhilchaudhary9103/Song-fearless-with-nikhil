@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nikhil's Music Player</title>
+  <style>
+    :root {
+      --primary: #00e5a8;
+      --dark: #0f172a;
+      --light: #e6f7ff;
+      --glass: rgba(255, 255, 255, 0.08);
+      --shadow: 0 8px 32px rgba(2, 6, 23, 0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #071029 0%, #0b1220 100%);
+      color: var(--light);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .player {
+      width: 100%;
+      max-width: 400px;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .artwork-container {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 25px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid var(--primary);
+      box-shadow: 0 10px 30px rgba(0, 229, 168, 0.3);
+      transition: transform 0.7s ease;
+    }
+
+    .artwork-container:hover {
+      transform: rotate(360deg);
+    }
+
+    .artwork {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .song-info {
+      margin-bottom: 25px;
+    }
+
+    .song-info h1 {
+      font-size: 22px;
+      color: var(--primary);
+      margin-bottom: 5px;
+      letter-spacing: 1px;
+    }
+
+    .song-info p {
+      opacity: 0.7;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      cursor: pointer;
+      margin: 15px 0;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      border-radius: 2px;
+      transition: width 0.1s linear;
+      position: relative;
+    }
+
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      right: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .progress-container:hover .progress-bar::after {
+      opacity: 1;
+    }
+
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: -10px;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .btn {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      background: var(--primary);
+      color: var(--dark);
+    }
+
+    .btn-main {
+      background: var(--primary);
+      color: var(--dark);
+      width: 50px;
+      height: 50px;
+    }
+
+    .btn-main:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 15px var(--primary);
+    }
+
+    footer {
+      margin-top: 30px;
+      font-size: 12px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <div class="artwork-container">
+      <img id="artwork" class="artwork" src="image.jpg" alt="Album Art">
+    </div>
+
+    <div class="song-info">
+      <h1 id="song-title">Music by Nikhil</h1>
+      <p id="song-artist">Enjoy the moment</p>
+    </div>
+
+    <div class="progress-container" id="progress-container">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <div class="time-display">
+      <span id="current-time">00:00</span>
+      <span id="duration">00:00</span>
+    </div>
+
+    <div class="controls">
+      <button id="prev-btn" class="btn">⏮</button>
+      <button id="play-btn" class="btn btn-main">▶</button>
+      <button id="next-btn" class="btn">⏭</button>
+    </div>
+
+    <footer>
+      Professional Music Player • Designed by Nikhil
+    </footer>
+  </div>
+
+  <audio id="audio" src="song1.mp3"></audio>
+
+  <script>
+    // DOM Elements
+    const audio = document.getElementById('audio');
+    const artwork = document.getElementById('artwork');
+    const songTitle = document.getElementById('song-title');
+    const progressBar = document.getElementById('progress-bar');
+    const progressContainer = document.getElementById('progress-container');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationEl = document.getElementById('duration');
+    const playBtn = document.getElementById('play-btn');
+
+    // State
+    let isPlaying = false;
+
+    // Format time (mm:ss)
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Update progress bar
+    function updateProgress() {
+      const { currentTime, duration } = audio;
+      const progressPercent = (currentTime / duration) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+      currentTimeEl.textContent = formatTime(currentTime);
+      durationEl.textContent = formatTime(duration);
+    }
+
+    // Set progress when clicked
+    function setProgress(e) {
+      const width = this.clientWidth;
+      const clickX = e.offsetX;
+      const duration = audio.duration;
+      audio.currentTime = (clickX / width) * duration;
+    }
+
+    // Play/pause toggle
+    function togglePlay() {
+      if (isPlaying) {
+        audio.pause();
+        playBtn.innerHTML = "▶";
+      } else {
+        audio.play()
+          .then(() => {
+            playBtn.innerHTML = "⏸";
+          })
+          .catch(err => {
+            console.error("Playback error:", err);
+          });
+      }
+      isPlaying = !isPlaying;
+    }
+
+    // Event Listeners
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('loadedmetadata', () => {
+      durationEl.textContent = formatTime(audio.duration);
+    });
+    audio.addEventListener('ended', () => {
+      isPlaying = false;
+      playBtn.innerHTML = "▶";
+    });
+
+    progressContainer.addEventListener('click', setProgress);
+    playBtn.addEventListener('click', togglePlay);
+
+    // Initialize
+    updateProgress();
+  </script>
+</body>
+</html>
